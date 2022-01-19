@@ -1,6 +1,6 @@
 # import
-from ncnetworkviz import Jaal
-from ncnetworkviz.datasets import load_got
+from jaal import Jaal
+from jaal.datasets import load_got
 import pandas as pd
 
 # load the data
