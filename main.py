@@ -1,6 +1,6 @@
 # import
-from jaal import Jaal
-from jaal.datasets import load_got
+from jaal-nc import Jaal
+from jaal-nc.datasets import load_got
 import pandas as pd
 
 # load the data
