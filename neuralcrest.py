@@ -15,4 +15,4 @@ vis_opts = {'height': '600px', # change height
 #app = Jaal(edge_df).create()
 #server = app.server
 
-Jaal(edge_df).plot(vis_opts=vis_opts)
+Jaal(edge_df).plot(host="https://neuralcrest.herokuapp.com", vis_opts=vis_opts)
