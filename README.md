@@ -5,10 +5,6 @@
 
 For data tables have a look at GRNs folder
 
-#### Ectoderm GRN
+#### Visualisation
 
-Interactive visualization of filtered GRN for Ectoderm is _[here](https://ectoderm.herokuapp.com/)_
-
-#### Neural crest GRN
-
-Interactive visualization of filtered GRN for NC is _[here](https://neuralcrest.herokuapp.com/)_
+Interactive visualization of filtered GRN for _[Ectoderm](https://ectoderm.herokuapp.com/)_ and _[NC](https://neuralcrest.herokuapp.com/)_
