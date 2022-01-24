@@ -8,4 +8,4 @@ Interactive visualization of filtered GRN for Ectoderm is [here](https://ectoder
 
 ## Neural crest GRN
 
-Interactive visualization of filtered GRN for Ectoderm is [here](https://neuralcrest.herokuapp.com/)
+Interactive visualization of filtered GRN for NC is [here](https://neuralcrest.herokuapp.com/)
