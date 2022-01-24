@@ -3,8 +3,8 @@
 ![Alt text](https://neucrest.curie.fr/img/logo.png)
 
 
-For data tables have a look at GRNs folder
+For data tables have a look at GRNs [folder](https://github.com/Qotov/neucrest_grn/tree/master/GRNs)
 
 #### Visualisation
 
-Interactive visualization of filtered GRN for _[Ectoderm](https://ectoderm.herokuapp.com/)_ and _[NC](https://neuralcrest.herokuapp.com/)_
+Interactive visualization of filtered GRNs for _[Ectoderm](https://ectoderm.herokuapp.com/)_ and _[NC](https://neuralcrest.herokuapp.com/)_
