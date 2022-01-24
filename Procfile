@@ -1,2 +1,2 @@
-web: gunicorn main:server
-api: gunicorn main2:server
+web: gunicorn ectoderm:server
+api: gunicorn nc:server
