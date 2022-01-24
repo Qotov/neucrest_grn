@@ -1,2 +1,2 @@
 web: gunicorn main:server
-web: gunicorn main2:server
+api: gunicorn main2:server
