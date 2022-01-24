@@ -4,7 +4,7 @@ from jaal.datasets import load_got
 import pandas as pd
 
 # load the data
-edge_df = pd.read_csv('viz_dfs/ectoderm_grn.csv')
+edge_df = pd.read_csv('viz_dfs/nc_grn.csv')
 
 # define vis options
 vis_opts = {'height': '600px', # change height
