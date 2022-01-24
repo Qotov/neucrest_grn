@@ -1,2 +1,2 @@
 web: gunicorn ectoderm:server
-web: gunicorn neuralcrest:server
+python: gunicorn neuralcrest:server
