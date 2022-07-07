@@ -8,3 +8,5 @@ For data tables have a look at GRNs [folder](https://github.com/Qotov/neucrest_g
 #### Visualisation
 
 Interactive visualization of filtered GRNs for _[Ectoderm](https://ectoderm.herokuapp.com/)_ and _[NC](https://neuralcrest.herokuapp.com/)_
+
+Lab page https://curie.fr/equipe/monsoro-burq
