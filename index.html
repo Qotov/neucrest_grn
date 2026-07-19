@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Neural Crest &amp; Ectoderm GRN Explorer</title>
+  <meta name="description" content="Interactive explorer for the gene regulatory networks (GRNs) of Xenopus neural crest and ectoderm development — Kotov et al., PNAS 2024." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AC%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-main">
+      <div class="header-titles">
+        <h1>Neural Crest &amp; Ectoderm GRN Explorer</h1>
+        <p class="subtitle">Interactive gene regulatory networks from <em>Xenopus</em> neural border to neural crest migration</p>
+      </div>
+      <div class="header-links">
+        <a class="btn-link" href="https://www.pnas.org/doi/10.1073/pnas.2311685121" target="_blank" rel="noopener">📄 Paper</a>
+        <a class="btn-link" href="https://curie.fr/equipe/monsoro-burq" target="_blank" rel="noopener">🔬 Lab</a>
+        <a class="btn-link" href="https://github.com/Qotov/neucrest_grn" target="_blank" rel="noopener">💻 GitHub</a>
+        <a class="btn-link" href="https://github.com/Qotov/neucrest_grn/tree/master/GRNs" target="_blank" rel="noopener">⬇ Raw data</a>
+        <button id="theme-toggle" class="btn-link" title="Toggle light / dark" aria-label="Toggle theme">🌓</button>
+      </div>
+    </div>
+    <p class="citation-line">
+      Kotov A, Seal S, Alkobtawi M, et&nbsp;al. <em>A time-resolved single-cell roadmap of the logic driving anterior neural crest diversification from neural border to migration stages.</em>
+      <strong>PNAS</strong> 121, e2311685121 (2024).
+    </p>
+  </header>
+
+  <nav class="controls" aria-label="Network controls">
+    <div class="control-group network-group">
+      <span class="control-label">Network</span>
+      <div id="network-chips" class="chips" role="tablist"></div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="gene-input">Focus gene</label>
+      <div class="gene-search">
+        <input id="gene-input" list="gene-list" placeholder="e.g. PAX3, SOX9, ZIC1…" autocomplete="off" spellcheck="false" />
+        <datalist id="gene-list"></datalist>
+        <button id="gene-clear" class="mini-btn" title="Clear focus gene">✕</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-label">Show</span>
+      <div id="direction-seg" class="segmented" role="group" aria-label="Edge direction">
+        <button data-dir="both" class="active">Both</button>
+        <button data-dir="targets">Targets ▸</button>
+        <button data-dir="regulators">◂ Regulators</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="weight-range">Min. weight <span id="weight-val" class="pill">0</span></label>
+      <input id="weight-range" type="range" min="0" max="100" value="0" />
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="maxnodes-range">Max edges <span id="maxnodes-val" class="pill">60</span></label>
+      <input id="maxnodes-range" type="range" min="10" max="300" step="10" value="60" />
+    </div>
+
+    <div class="control-group validation-only" hidden>
+      <label class="control-label checkbox-label">
+        <input type="checkbox" id="validated-only" /> Validated edges only
+      </label>
+    </div>
+  </nav>
+
+  <main class="workspace">
+    <section class="graph-panel">
+      <div id="cy"></div>
+      <div id="graph-empty" class="graph-empty" hidden></div>
+      <div class="graph-overlay">
+        <div id="graph-stats" class="graph-stats"></div>
+        <div id="legend" class="legend"></div>
+      </div>
+      <div class="graph-toolbar">
+        <button id="fit-btn" class="mini-btn" title="Fit to view">⤢ Fit</button>
+        <button id="png-btn" class="mini-btn" title="Download graph as PNG">🖼 PNG</button>
+      </div>
+    </section>
+
+    <aside class="side-panel" id="side-panel">
+      <div class="side-placeholder">
+        <h3>Getting started</h3>
+        <ol>
+          <li>Pick a <strong>network</strong> above.</li>
+          <li>Type a <strong>focus gene</strong> to center the view on its regulators and targets.</li>
+          <li>Click any <strong>node</strong> to re-center, or an <strong>edge</strong> for interaction details.</li>
+        </ol>
+        <p class="hint">Tip: the two <em>validated</em> networks (Pax3, TFAP2e) combine GRNboost2 predictions with morpholino knockdown and ChIP-seq — edges are colored by how they were confirmed.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="table-panel">
+    <div class="table-toolbar">
+      <h2 id="table-title">Edges</h2>
+      <div class="table-actions">
+        <input id="table-filter" placeholder="Filter rows…" autocomplete="off" />
+        <span id="row-count" class="pill"></span>
+        <button id="download-btn" class="mini-btn">⬇ Download CSV</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="edge-table">
+        <thead><tr id="table-head"></tr></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <p>
+      Data &amp; code: <a href="https://github.com/Qotov/neucrest_grn" target="_blank" rel="noopener">github.com/Qotov/neucrest_grn</a> ·
+      Networks inferred with <a href="https://arboreto.readthedocs.io/" target="_blank" rel="noopener">GRNboost2</a> ·
+      Monsoro-Burq lab, Institut Curie / Université Paris-Saclay ·
+      Explorer is a companion resource, not a substitute for the published figures &amp; supplementary data.
+    </p>
+  </footer>
+
+  <div id="load-status" class="load-status" hidden></div>
+
+  <script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
