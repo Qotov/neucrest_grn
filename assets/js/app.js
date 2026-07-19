@@ -235,6 +235,7 @@ function renderGraph(ds, edges) {
     container: document.getElementById('cy'),
     elements: els,
     minZoom: 0.1, maxZoom: 4,
+    wheelSensitivity: 0.5,
     style: cyStyle(wRange),
     layout: layoutFor(nodeMap.size, focus.size),
   });
