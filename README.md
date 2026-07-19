@@ -23,6 +23,11 @@ was validated. Runs entirely in your browser — no install, no server.
   ego-network of upstream regulators and downstream targets.
 - **Four networks** — the global **Neural crest** and **Ectoderm** connectomes, plus
   the **Pax3** and **TFAP2e** sub-networks validated by morpholino + ChIP-seq.
+- **Cranial / Vagal subviews** — on the NC network, filter to the neighborhood of
+  curated cranial (hox-negative) or vagal (hox-positive + *mafb/egr2*) lineage
+  regulators from Fig. 2–3. These are a transparent filter on the single global NC
+  GRN, not separately inferred sub-networks (the gene panels are an editable constant
+  in `assets/js/app.js`).
 - **Validation at a glance** — in the validated networks, edges are colored
   predicted-only · morpholino-confirmed · ChIP-seq peak · **triple-validated**.
 - **Filter, sort, export** — weight threshold, edge cap, sortable table, and one-click

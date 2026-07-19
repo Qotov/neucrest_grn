@@ -14,16 +14,35 @@ const NETWORKS = {
   tfap2e:   { label: 'TFAP2e',         file: 'GRNs/tfap2e_GRN.tsv',          kind: 'validated', hub: 'TFAP2E', note: 'GRNboost2 + morpholino + ChIP-seq' },
 };
 
+// Curated lineage-marker panels for the global Neural-crest network, from
+// Kotov et al. Fig. 2–3: cranial NC is hox-negative (Dlx2/Alx1/Sox10/Tfap2b/
+// Ets1/Zfhx4/Tfap2e regulators); vagal NC is hox-positive (hoxa–d 1–7) plus
+// mafb / egr2. These are a transparent filter on the single global NC GRN,
+// NOT separately inferred sub-networks — edit the lists to refine.
+const SUBVIEWS = {
+  cranial: { label: 'Cranial', genes: ['DLX2', 'ALX1', 'SOX10', 'TFAP2B', 'ETS1', 'ZFHX4', 'TFAP2E'] },
+  vagal:   { label: 'Vagal',   genes: ['HOXD3', 'HOXB6', 'HOXA7', 'HOXB3', 'HOXA2', 'HOXA3', 'HOXD1', 'MAFB', 'EGR2', 'CDX4'] },
+};
+
 const state = {
   net: 'nc',
   gene: '',
   dir: 'both',
+  subview: 'all',
   minWeight: 0,
   maxEdges: 60,
   validatedOnly: false,
   sort: { key: null, asc: false },
   visibleEdges: [],
 };
+
+// The active set of "focus" genes for the current view, or null.
+function focusSet() {
+  if (state.gene) return new Set([state.gene.toUpperCase()]);
+  if (state.net === 'nc' && state.subview !== 'all') return new Set(SUBVIEWS[state.subview].genes);
+  const hub = NETWORKS[state.net].hub;
+  return hub ? new Set([hub]) : null;
+}
 
 const cache = {};      // netKey -> parsed dataset
 let cy = null;
@@ -143,7 +162,11 @@ function buildEgo(ds) {
   const { gene, dir, minWeight, maxEdges, validatedOnly } = state;
   let pool = [];
 
-  if (!gene) {
+  if (!gene && state.net === 'nc' && state.subview !== 'all') {
+    // lineage-marker subview: neighborhood around the panel genes
+    const set = new Set(SUBVIEWS[state.subview].genes);
+    pool = ds.edges.filter((e) => set.has(e.tf) || set.has(e.target));
+  } else if (!gene) {
     // no focus: for validated nets center on the hub; for global show top edges
     if (ds.kind === 'validated') {
       pool = ds.edges.slice();
@@ -172,16 +195,18 @@ function renderGraph(ds, edges) {
     emptyEl.hidden = false;
     emptyEl.textContent = state.gene
       ? `No edges for "${state.gene}" in the ${NETWORKS[state.net].label} network with the current filters.`
-      : 'No edges match the current filters.';
+      : (state.net === 'nc' && state.subview !== 'all')
+        ? `No ${SUBVIEWS[state.subview].label} edges match the current filters.`
+        : 'No edges match the current filters.';
     return;
   }
   emptyEl.hidden = true;
 
-  const focus = state.gene ? state.gene.toUpperCase() : (ds.hub || null);
+  const focus = focusSet() || new Set();
   const nodeMap = new Map();
   const addNode = (id) => {
     if (nodeMap.has(id)) return;
-    const isFocus = focus && id === focus;
+    const isFocus = focus.has(id);
     const isTF = ds.tfSet.has(id);
     nodeMap.set(id, {
       data: { id, label: id, role: isFocus ? 'focus' : (isTF ? 'tf' : 'target') },
@@ -209,18 +234,18 @@ function renderGraph(ds, edges) {
   cy = cytoscape({
     container: document.getElementById('cy'),
     elements: els,
-    minZoom: 0.15, maxZoom: 3,
-    wheelSensitivity: 0.2,
+    minZoom: 0.1, maxZoom: 4,
     style: cyStyle(wRange),
-    layout: layoutFor(nodeMap.size, focus),
+    layout: layoutFor(nodeMap.size, focus.size),
   });
 
   cy.on('tap', 'node', (evt) => selectGene(evt.target.id()));
   cy.on('tap', 'edge', (evt) => showEdgeDetails(ds, evt.target.data()));
 }
 
-function layoutFor(nNodes, focus) {
-  if (focus && nNodes > 2) {
+function layoutFor(nNodes, nFocus) {
+  // single focus gene → clean radial rings; multi-focus (subview) → force layout
+  if (nFocus === 1 && nNodes > 2) {
     return {
       name: 'concentric',
       concentric: (n) => (n.data('role') === 'focus' ? 3 : (n.data('role') === 'tf' ? 2 : 1)),
@@ -290,6 +315,32 @@ function showNodeDetails(ds, gene) {
       <ul class="mini-list">${mkList(regulators, 'tf')}</ul>
     </div>`;
 
+  panel.querySelectorAll('.mini-list li[data-gene]').forEach((li) =>
+    li.addEventListener('click', () => selectGene(li.dataset.gene)));
+}
+
+function showSubviewDetails(ds, edges) {
+  const panel = document.getElementById('side-panel');
+  const sv = SUBVIEWS[state.subview];
+  const present = sv.genes.filter((g) => ds.byTF.has(g) || ds.byTarget.has(g));
+  const chips = present.map((g) =>
+    `<li data-gene="${g}"><span>${g}</span><span class="w">${(ds.byTF.get(g) || []).length} targets</span></li>`).join('');
+  const nodes = new Set();
+  edges.forEach((e) => { nodes.add(e.tf); nodes.add(e.target); });
+  panel.innerHTML = `
+    <div class="node-card">
+      <h3>${sv.label} neural crest</h3>
+      <p class="hint" style="border:none;margin:0;padding:0">
+        Neighborhood of curated ${sv.label.toLowerCase()} lineage regulators within the
+        global NC network. This is a transparent filter on the single NC GRN, not a
+        separately inferred sub-network.</p>
+      <div class="stat-grid">
+        <div class="stat"><div class="k">Panel genes</div><div class="v">${present.length}</div></div>
+        <div class="stat"><div class="k">Genes shown</div><div class="v">${nodes.size}</div></div>
+      </div>
+      <div class="section-h">${sv.label} regulators (click to center)</div>
+      <ul class="mini-list">${chips}</ul>
+    </div>`;
   panel.querySelectorAll('.mini-list li[data-gene]').forEach((li) =>
     li.addEventListener('click', () => selectGene(li.dataset.gene)));
 }
@@ -400,7 +451,9 @@ function renderTable(ds, edges) {
   document.getElementById('row-count').textContent =
     `${rows.length} edge${rows.length === 1 ? '' : 's'}${rows.length > 500 ? ' (showing 500)' : ''}`;
   document.getElementById('table-title').textContent =
-    state.gene ? `Edges around ${state.gene}` : `Top edges — ${NETWORKS[state.net].label}`;
+    state.gene ? `Edges around ${state.gene}`
+    : (state.net === 'nc' && state.subview !== 'all') ? `${SUBVIEWS[state.subview].label} NC edges`
+    : `Top edges — ${NETWORKS[state.net].label}`;
 }
 
 // ---------------------------------------------------------------- orchestration
@@ -425,6 +478,7 @@ async function refresh() {
   updateGraphStats(ds, edges);
   updateLegend(ds);
   if (state.gene) showNodeDetails(ds, state.gene);
+  else if (state.net === 'nc' && state.subview !== 'all') showSubviewDetails(ds, edges);
   syncURL();
 }
 
@@ -459,6 +513,7 @@ function updateLegend(ds) {
 
 function selectGene(gene) {
   state.gene = gene;
+  if (state.subview !== 'all') { state.subview = 'all'; resetSubviewButtons(); }
   document.getElementById('gene-input').value = gene;
   refresh();
 }
@@ -469,6 +524,7 @@ function syncURL() {
   p.set('net', state.net);
   if (state.gene) p.set('gene', state.gene);
   if (state.dir !== 'both') p.set('dir', state.dir);
+  if (state.net === 'nc' && state.subview !== 'all') p.set('sub', state.subview);
   history.replaceState(null, '', '?' + p.toString());
 }
 
@@ -477,6 +533,7 @@ function readURL() {
   if (p.get('net') && NETWORKS[p.get('net')]) state.net = p.get('net');
   if (p.get('gene')) state.gene = p.get('gene').toUpperCase();
   if (p.get('dir')) state.dir = p.get('dir');
+  if (p.get('sub') && SUBVIEWS[p.get('sub')]) state.subview = p.get('sub');
 }
 
 // ---------------------------------------------------------------- UI wiring
@@ -489,12 +546,25 @@ function buildNetworkChips() {
   wrap.querySelectorAll('.chip').forEach((c) => c.addEventListener('click', () => {
     state.net = c.dataset.net;
     state.gene = '';
+    state.subview = 'all';
     document.getElementById('gene-input').value = '';
     state.sort = { key: null, asc: false };
     wrap.querySelectorAll('.chip').forEach((x) => x.classList.toggle('active', x === c));
-    document.querySelector('.validation-only').hidden = NETWORKS[state.net].kind !== 'validated';
+    resetSubviewButtons();
+    updateContextualControls();
     loadNetwork(state.net).then(fillGeneList).then(refresh);
   }));
+}
+
+function resetSubviewButtons() {
+  document.querySelectorAll('#subview-seg button').forEach((x) =>
+    x.classList.toggle('active', x.dataset.sub === state.subview));
+}
+
+// Show/hide controls that only apply to certain networks.
+function updateContextualControls() {
+  document.querySelector('.validation-only').hidden = NETWORKS[state.net].kind !== 'validated';
+  document.querySelector('.subview-group').hidden = state.net !== 'nc';
 }
 
 async function fillGeneList() {
@@ -514,14 +584,15 @@ function wireControls() {
     const v = geneInput.value.trim().toUpperCase();
     const ds = cache[state.net];
     if (v && ds && !ds.byTF.has(v) && !ds.byTarget.has(v)) return; // ignore unknown until valid
-    state.gene = v;
+    if (v) { selectGene(v); return; }
+    state.gene = '';
     refresh();
   };
   geneInput.addEventListener('change', applyGene);
   geneInput.addEventListener('input', debounce(() => {
     const v = geneInput.value.trim().toUpperCase();
     const ds = cache[state.net];
-    if (v && ds && (ds.byTF.has(v) || ds.byTarget.has(v))) { state.gene = v; refresh(); }
+    if (v && ds && (ds.byTF.has(v) || ds.byTarget.has(v))) selectGene(v);
   }, 350));
 
   document.getElementById('gene-clear').addEventListener('click', () => {
@@ -532,6 +603,15 @@ function wireControls() {
     b.addEventListener('click', () => {
       state.dir = b.dataset.dir;
       document.querySelectorAll('#direction-seg button').forEach((x) => x.classList.toggle('active', x === b));
+      refresh();
+    }));
+
+  document.querySelectorAll('#subview-seg button').forEach((b) =>
+    b.addEventListener('click', () => {
+      state.subview = b.dataset.sub;
+      state.gene = '';
+      document.getElementById('gene-input').value = '';
+      document.querySelectorAll('#subview-seg button').forEach((x) => x.classList.toggle('active', x === b));
       refresh();
     }));
 
@@ -559,6 +639,8 @@ function wireControls() {
   document.getElementById('download-btn').addEventListener('click', downloadCSV);
   document.getElementById('fit-btn').addEventListener('click', () => cy && cy.fit(null, 40));
   document.getElementById('png-btn').addEventListener('click', downloadPNG);
+  document.getElementById('zoomin-btn').addEventListener('click', () => zoomBy(1.3));
+  document.getElementById('zoomout-btn').addEventListener('click', () => zoomBy(1 / 1.3));
 
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 }
@@ -585,6 +667,13 @@ function downloadCSV() {
   a.download = `${state.net}_GRN${state.gene ? '_' + state.gene : ''}_filtered.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+function zoomBy(factor) {
+  if (!cy) return;
+  const z = Math.min(cy.maxZoom(), Math.max(cy.minZoom(), cy.zoom() * factor));
+  const c = { x: cy.width() / 2, y: cy.height() / 2 };
+  cy.zoom({ level: z, renderedPosition: c });
 }
 
 function downloadPNG() {
@@ -640,7 +729,8 @@ function boot() {
     document.querySelectorAll('#direction-seg button').forEach((x) =>
       x.classList.toggle('active', x.dataset.dir === state.dir));
   }
-  document.querySelector('.validation-only').hidden = NETWORKS[state.net].kind !== 'validated';
+  resetSubviewButtons();
+  updateContextualControls();
   if (state.gene) document.getElementById('gene-input').value = state.gene;
   wireControls();
   loadNetwork(state.net).then(fillGeneList).then(refresh).catch((err) => {

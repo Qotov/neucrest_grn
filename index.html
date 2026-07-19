@@ -53,6 +53,15 @@
       </div>
     </div>
 
+    <div class="control-group subview-group" hidden>
+      <span class="control-label">NC subview</span>
+      <div id="subview-seg" class="segmented" role="group" aria-label="Neural crest subview">
+        <button data-sub="all" class="active">Whole NC</button>
+        <button data-sub="cranial">Cranial</button>
+        <button data-sub="vagal">Vagal</button>
+      </div>
+    </div>
+
     <div class="control-group">
       <label class="control-label" for="weight-range">Min. weight <span id="weight-val" class="pill">0</span></label>
       <input id="weight-range" type="range" min="0" max="100" value="0" />
@@ -79,6 +88,8 @@
         <div id="legend" class="legend"></div>
       </div>
       <div class="graph-toolbar">
+        <button id="zoomin-btn" class="mini-btn" title="Zoom in">＋</button>
+        <button id="zoomout-btn" class="mini-btn" title="Zoom out">－</button>
         <button id="fit-btn" class="mini-btn" title="Fit to view">⤢ Fit</button>
         <button id="png-btn" class="mini-btn" title="Download graph as PNG">🖼 PNG</button>
       </div>
